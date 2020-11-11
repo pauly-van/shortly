@@ -88,15 +88,14 @@ app.post('/login',
     //compare attempted PW to actual PW
     models.Users.get({username: req.body.username})
       .then((results) => {
-        let pwMatch = models.Users.compare(req.body.password, results.password, utils.createRandom32String());
+        let pwMatch = models.Users.compare(req.body.password, results.password, results.salt);
         if (pwMatch) {
           res.render('index');
-        } else {
-          res.status(401).send('Bad User/Password');
         }
       })
-      .catch(error =>{
-        res.status(404).send(error);
+      .catch(error => {
+        res.render('login');
+        res.send('bad password/user');
       });
   });
 
@@ -106,11 +105,18 @@ app.get('/signup',
   });
 
 app.post('/signup',
-  (req, res, next) =>{
+  (req, res, next) => {
     let userObj = {};
     userObj.username = req.body.username;
     userObj.password = req.body.password;
-    console.log(models.Users.create(userObj));
+    models.Users.create(userObj)
+      .then((result) => {
+        res.render('index');
+        res.status(200);
+      })
+      .catch((err) => {
+        res.render('signup');
+      });
   });
 
 
