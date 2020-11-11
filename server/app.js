@@ -4,6 +4,7 @@ const utils = require('./lib/hashUtils');
 const partials = require('express-partials');
 const bodyParser = require('body-parser');
 const Auth = require('./middleware/auth');
+
 const models = require('./models');
 
 const app = express();
@@ -18,6 +19,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 app.get('/',
   (req, res) => {
+    Auth.createSession();
     res.render('index');
   });
 
@@ -80,23 +82,32 @@ app.post('/links',
 app.get('/login',
   (req, res, next) => {
     res.status(200);
+    res.location('/login');
     res.render('login');
   });
 
 app.post('/login',
   (req, res, next) => {
+    // Cook.parseCookies(req, res, next);
     //compare attempted PW to actual PW
     models.Users.get({username: req.body.username})
       .then((results) => {
-        let pwMatch = models.Users.compare(req.body.password, results.password, utils.createRandom32String());
+        if (results === undefined) {
+          res.location('/login');
+          res.render('login');
+          next();
+        }
+        let pwMatch = models.Users.compare(req.body.password, results.password, results.salt);
         if (pwMatch) {
+          res.location('/');
           res.render('index');
         } else {
-          res.status(401).send('Bad User/Password');
+          res.location('/login');
+          res.render('login');
         }
       })
-      .catch(error =>{
-        res.status(404).send(error);
+      .catch(error => {
+        res.status(404);
       });
   });
 
@@ -106,11 +117,20 @@ app.get('/signup',
   });
 
 app.post('/signup',
-  (req, res, next) =>{
+  (req, res, next) => {
     let userObj = {};
     userObj.username = req.body.username;
     userObj.password = req.body.password;
-    console.log(models.Users.create(userObj));
+    models.Users.create(userObj)
+      .then((result) => {
+        res.location('/');
+        res.render('index');
+        res.status(200);
+      })
+      .catch((err) => {
+        res.location('/signup');
+        res.render('signup');
+      });
   });
 
 
