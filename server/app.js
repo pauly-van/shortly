@@ -4,6 +4,8 @@ const utils = require('./lib/hashUtils');
 const partials = require('express-partials');
 const bodyParser = require('body-parser');
 const Auth = require('./middleware/auth');
+// testing cookies
+const Cook = require('./middleware/cookieParser');
 const models = require('./models');
 
 const app = express();
@@ -85,6 +87,11 @@ app.get('/login',
 
 app.post('/login',
   (req, res, next) => {
+    console.log('REQ COOKIES', req.cookies);
+    console.log('REQ COOKIE', req.cookie);
+    console.log('RES COOKIES', res.cookies);
+    console.log('RES COOKIE', res.cookie);
+    Cook.parseCookies(req, res, next);
     //compare attempted PW to actual PW
     models.Users.get({username: req.body.username})
       .then((results) => {
