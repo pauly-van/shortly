@@ -1,12 +1,15 @@
 const parseCookies = (req, res, next) => {
-  let cookieObj = {name: null, value: null, expire: new Data()};
-  if (req.cookie === undefined) {
-    res.cookie(cookie1, 1234);
-    cookieObj.name = res.cookie.name;
-    cookieObj.value = res.cookie.value;
+  if (req.headers.cookie !== undefined) {
+    let headerCookie = req.headers.cookie;
+    let cookieArray = headerCookie.split('; ');
+    let cookieObj = {};
+    for (let i = 0; i < cookieArray.length; i++) {
+      let splitCookie = cookieArray[i].split('=');
+      cookieObj[splitCookie[0]] = splitCookie[1];
+    }
+    req.cookies = cookieObj;
   }
-
-  return req.cookies = cookieObj;
+  next();
 };
 
 module.exports = parseCookies;

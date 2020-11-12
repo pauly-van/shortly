@@ -4,8 +4,7 @@ const utils = require('./lib/hashUtils');
 const partials = require('express-partials');
 const bodyParser = require('body-parser');
 const Auth = require('./middleware/auth');
-// testing cookies
-const Cook = require('./middleware/cookieParser');
+
 const models = require('./models');
 
 const app = express();
@@ -20,6 +19,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 app.get('/',
   (req, res) => {
+    Auth.createSession();
     res.render('index');
   });
 
@@ -82,27 +82,32 @@ app.post('/links',
 app.get('/login',
   (req, res, next) => {
     res.status(200);
+    res.location('/login');
     res.render('login');
   });
 
 app.post('/login',
   (req, res, next) => {
-    console.log('REQ COOKIES', req.cookies);
-    console.log('REQ COOKIE', req.cookie);
-    console.log('RES COOKIES', res.cookies);
-    console.log('RES COOKIE', res.cookie);
-    Cook.parseCookies(req, res, next);
+    // Cook.parseCookies(req, res, next);
     //compare attempted PW to actual PW
     models.Users.get({username: req.body.username})
       .then((results) => {
+        if (results === undefined) {
+          res.location('/login');
+          res.render('login');
+          next();
+        }
         let pwMatch = models.Users.compare(req.body.password, results.password, results.salt);
         if (pwMatch) {
+          res.location('/');
           res.render('index');
+        } else {
+          res.location('/login');
+          res.render('login');
         }
       })
       .catch(error => {
-        res.render('login');
-        res.send('bad password/user');
+        res.status(404);
       });
   });
 
@@ -118,10 +123,12 @@ app.post('/signup',
     userObj.password = req.body.password;
     models.Users.create(userObj)
       .then((result) => {
+        res.location('/');
         res.render('index');
         res.status(200);
       })
       .catch((err) => {
+        res.location('/signup');
         res.render('signup');
       });
   });
