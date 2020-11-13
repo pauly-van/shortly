@@ -1,9 +1,20 @@
 const models = require('../models');
 const Promise = require('bluebird');
+const Cookies = require('./cookieParser');
 
 module.exports.createSession = (req, res, next) => {
-  console.log('PARSE COOKIES');
-  parseCookies();
+  if (req.headers.cookie) {
+    let hash = models.Sessions.create();
+    req.session = hash;
+  } else {
+    let cookies = Cookies.parseCookies();
+
+  }
+  next();
+  // that should crete cooke for us
+  // then  we post query the database for the session table
+  // models.sessions.create
+  // set to response sessions
 };
 
 /************************************************************/
