@@ -1,20 +1,40 @@
 const models = require('../models');
 const Promise = require('bluebird');
-const Cookies = require('./cookieParser');
 
 module.exports.createSession = (req, res, next) => {
-  if (req.headers.cookie) {
-    let hash = models.Sessions.create();
-    req.session = hash;
+  if (req.cookies.shortlyid === undefined) {
+    models.Sessions.create()
+      .then((result) => {
+        return models.Sessions.get({id: result.insertId});
+      })
+      .then((result) => {
+        req.session = {};
+        req.session = result;
+        res.cookies.shortlyid = {value: result.hash};
+        next();
+      });
   } else {
-    let cookies = Cookies.parseCookies();
-
+    models.Sessions.get({hash: req.cookies.shortlyid})
+      .then((result) => {
+        if (result !== undefined) {
+          req.session = {};
+          req.session = result;
+          res.cookies.shortlyid = {value: result.hash};
+          next();
+        } else {
+          models.Sessions.create()
+            .then((result) => {
+              return models.Sessions.get({id: result.insertId});
+            })
+            .then((result) => {
+              req.session = {};
+              req.session = result;
+              res.cookies.shortlyid = {value: result.hash};
+              next();
+            });
+        }
+      });
   }
-  next();
-  // that should crete cooke for us
-  // then  we post query the database for the session table
-  // models.sessions.create
-  // set to response sessions
 };
 
 /************************************************************/

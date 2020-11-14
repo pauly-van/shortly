@@ -453,6 +453,7 @@ describe('', function() {
 
               createSession(requestWithCookies, secondResponse, function() {
                 var session = requestWithCookies.session;
+
                 expect(session).to.be.an('object');
                 expect(session.user.username).to.eq(username);
                 expect(session.userId).to.eq(userId);
