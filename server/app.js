@@ -4,8 +4,6 @@ const utils = require('./lib/hashUtils');
 const partials = require('express-partials');
 const bodyParser = require('body-parser');
 const Auth = require('./middleware/auth');
-const CookieParser = require('./middleware/cookieParser');
-
 const models = require('./models');
 
 const app = express();
@@ -21,24 +19,35 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 app.get('/',
   (req, res) => {
-    Auth.createSession();
-    res.render('index');
+    if (Auth.verifySession(req)) {
+      res.render('index');
+    } else {
+      res.redirect('login');
+    }
   });
 
 app.get('/create',
   (req, res) => {
-    res.render('index');
+    if (Auth.verifySession(req)) {
+      res.render('index');
+    } else {
+      res.redirect('login');
+    }
   });
 
 app.get('/links',
   (req, res, next) => {
-    models.Links.getAll()
-      .then(links => {
-        res.status(200).send(links);
-      })
-      .error(error => {
-        res.status(500).send(error);
-      });
+    if (Auth.verifySession(req)) {
+      models.Links.getAll()
+        .then(links => {
+          res.status(200).send(links);
+        })
+        .error(error => {
+          res.status(500).send(error);
+        });
+    } else {
+      res.redirect('login');
+    }
   });
 
 app.post('/links',
@@ -115,7 +124,7 @@ app.post('/login',
 
 app.get('/signup',
   (req, res, next) => {
-    res.render('signup').status(200);
+    res.render('signup');
   });
 
 app.post('/signup',
