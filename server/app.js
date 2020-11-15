@@ -4,7 +4,6 @@ const utils = require('./lib/hashUtils');
 const partials = require('express-partials');
 const bodyParser = require('body-parser');
 const Auth = require('./middleware/auth');
-
 const models = require('./models');
 
 const app = express();
@@ -17,25 +16,46 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '../public')));
 
 
+
 app.get('/',
   (req, res) => {
-    Auth.createSession();
-    res.render('index');
+    Auth.verifySession(req)
+      .then((validSession) => {
+        if (validSession) {
+          res.render('index');
+        } else {
+          res.redirect('login');
+        }
+      });
   });
 
 app.get('/create',
   (req, res) => {
-    res.render('index');
+    Auth.verifySession(req)
+      .then((validSession) => {
+        if (validSession) {
+          res.render('index');
+        } else {
+          res.redirect('login');
+        }
+      });
   });
 
 app.get('/links',
   (req, res, next) => {
-    models.Links.getAll()
-      .then(links => {
-        res.status(200).send(links);
-      })
-      .error(error => {
-        res.status(500).send(error);
+    Auth.verifySession(req)
+      .then((validSession) => {
+        if (validSession) {
+          models.Links.getAll()
+            .then(links => {
+              res.status(200).send(links);
+            })
+            .error(error => {
+              res.status(500).send(error);
+            });
+        } else {
+          res.redirect('login');
+        }
       });
   });
 
@@ -84,12 +104,11 @@ app.get('/login',
     res.status(200);
     res.location('/login');
     res.render('login');
+    next();
   });
 
 app.post('/login',
   (req, res, next) => {
-    // Cook.parseCookies(req, res, next);
-    //compare attempted PW to actual PW
     models.Users.get({username: req.body.username})
       .then((results) => {
         if (results === undefined) {
@@ -99,21 +118,23 @@ app.post('/login',
         }
         let pwMatch = models.Users.compare(req.body.password, results.password, results.salt);
         if (pwMatch) {
-          res.location('/');
-          res.render('index');
+          Auth.createSession(req, res, next);
         } else {
           res.location('/login');
           res.render('login');
+          next();
         }
       })
       .catch(error => {
         res.status(404);
+        next();
       });
   });
 
 app.get('/signup',
   (req, res, next) => {
-    res.render('signup').status(200);
+    res.render('signup');
+    next();
   });
 
 app.post('/signup',
@@ -123,13 +144,24 @@ app.post('/signup',
     userObj.password = req.body.password;
     models.Users.create(userObj)
       .then((result) => {
-        res.location('/');
-        res.render('index');
-        res.status(200);
+        Auth.createSession(req, res, next);
       })
       .catch((err) => {
         res.location('/signup');
         res.render('signup');
+        next();
+      });
+  });
+
+//logout handler, can't figure out how to add to client since sprint said don't worry about client, its 6pm on Sat and I'm just going to write this as if I knew how to add the button on the client side
+app.delete('/',
+  (req, res, next) => {
+    Auth.parseCookies(req);
+    let hash = req.cookies.shortlyid;
+    Auth.deleteSession(hash)
+      .then((result) => {
+        res.render('login');
+        next();
       });
   });
 
