@@ -276,6 +276,61 @@ describe('', function() {
     });
   });
 
+  describe('Account Logout:', function() {
+    var Auth = require('../server/middleware/auth.js');
+
+    it('should delete a hash from the sessions table upon a logout request', function(done) {
+      var requestWithoutCookies = httpMocks.createRequest();
+      var response = httpMocks.createResponse();
+
+      Auth.createSession(requestWithoutCookies, response, function() {
+        let hash = requestWithoutCookies.session.shortlyid;
+
+        Auth.deleteSession(hash)
+          .then((result) => {
+            db.query(`SELECT * FROM sessions WHERE hash = '${hash}'`, null, function(error, results) {
+              expect(results.hash).to.be.undefined;
+              done();
+            });
+          });
+      });
+    });
+    it('should not delete any other hashes in the sessions table upon a logout request', function(done) {
+      var requestWithoutCookies = httpMocks.createRequest();
+      var response = httpMocks.createResponse();
+
+      Auth.createSession(requestWithoutCookies, response, function() {
+        let hash = requestWithoutCookies.session.hash;
+        var anotherRequestWithoutCookies = httpMocks.createRequest();
+        var anotherResponse = httpMocks.createResponse();
+
+        Auth.createSession(anotherRequestWithoutCookies, anotherResponse, function() {
+          Auth.deleteSession(hash)
+            .then((result) => {
+              db.query('SELECT * FROM sessions', null, function(error, results) {
+                expect(results.length).to.equal(1);
+                done();
+              });
+            });
+        });
+      });
+    });
+    it('should be resolved on a message stating "Session successfully deleted" upon successful session deletion', function(done) {
+      var requestWithoutCookies = httpMocks.createRequest();
+      var response = httpMocks.createResponse();
+
+      Auth.createSession(requestWithoutCookies, response, function() {
+        let hash = requestWithoutCookies.session.hash;
+
+        Auth.deleteSession(hash)
+          .then((result) => {
+            expect(result).to.equal('Session successfully deleted');
+            done();
+          });
+      });
+    });
+  });
+
   describe('Sessions Schema:', function() {
     it('contains a sessions table', function(done) {
       var queryString = 'SELECT * FROM sessions';
@@ -453,7 +508,6 @@ describe('', function() {
 
               createSession(requestWithCookies, secondResponse, function() {
                 var session = requestWithCookies.session;
-                console.log('SESSION', session);
 
                 expect(session).to.be.an('object');
                 expect(session.user.username).to.eq(username);

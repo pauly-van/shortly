@@ -1,7 +1,7 @@
 const models = require('../models');
 const Promise = require('bluebird');
 
-module.exports.createSession = (req, res, next, type) => {
+module.exports.createSession = (req, res, next) => {
   models.Sessions.create()
     .then((result) => {
       return models.Sessions.get({id: result.insertId});
@@ -48,5 +48,14 @@ module.exports.verifySession = function(req) {
           }
         });
     }
+  });
+};
+
+module.exports.deleteSession = function(cookie) {
+  return new Promise((resolve, reject) => {
+    models.Sessions.delete({ hash: cookie})
+      .then((result) => {
+        resolve('Session successfully deleted');
+      });
   });
 };

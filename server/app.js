@@ -157,10 +157,12 @@ app.post('/signup',
 app.delete('/',
   (req, res, next) => {
     Auth.parseCookies(req);
-    let cookie = req.cookies.shortlyid;
-    models.Sessions.delete({ hash: cookie});
-    res.render('login');
-    next();
+    let hash = req.cookies.shortlyid;
+    Auth.deleteSession(hash)
+      .then((result) => {
+        res.render('login');
+        next();
+      });
   });
 
 
