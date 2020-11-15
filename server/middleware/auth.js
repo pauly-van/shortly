@@ -1,5 +1,6 @@
 const models = require('../models');
 const Promise = require('bluebird');
+const Cookies = require('./cookieParser');
 
 module.exports.createSession = (req, res, next) => {
   models.Sessions.create()
@@ -21,22 +22,10 @@ module.exports.createSession = (req, res, next) => {
 // Add additional authentication middleware functions below
 /************************************************************/
 
-const parseCookies = (req) => {
-  let cookieObj = {};
-  if (req.headers.cookie) {
-    let headerCookie = req.headers.cookie;
-    let cookieArray = headerCookie.split('; ');
-    for (let i = 0; i < cookieArray.length; i++) {
-      let splitCookie = cookieArray[i].split('=');
-      cookieObj[splitCookie[0]] = splitCookie[1];
-    }
-  }
-  req.cookies = cookieObj;
-};
 
 module.exports.verifySession = function(req) {
   return new Promise((resolve, reject) => {
-    parseCookies(req);
+    Cookies.parseCookies(req);
     let cookies = req.cookies;
     if (cookies.shortlyid) {
       models.Sessions.get({hash: cookies.shortlyid})

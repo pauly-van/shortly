@@ -63,7 +63,6 @@ app.post('/links',
   (req, res, next) => {
     var url = req.body.url;
     if (!models.Links.isValidUrl(url)) {
-    // send back a 404 if link is not valid
       return res.sendStatus(404);
     }
 
@@ -153,7 +152,6 @@ app.post('/signup',
       });
   });
 
-//logout handler, can't figure out how to add to client since sprint said don't worry about client, its 6pm on Sat and I'm just going to write this as if I knew how to add the button on the client side
 app.delete('/',
   (req, res, next) => {
     Auth.parseCookies(req);
