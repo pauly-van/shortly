@@ -19,35 +19,44 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 app.get('/',
   (req, res) => {
-    if (Auth.verifySession(req)) {
-      res.render('index');
-    } else {
-      res.redirect('login');
-    }
+    Auth.verifySession(req)
+      .then((validSession) => {
+        if (validSession) {
+          res.render('index');
+        } else {
+          res.redirect('login');
+        }
+      });
   });
 
 app.get('/create',
   (req, res) => {
-    if (Auth.verifySession(req)) {
-      res.render('index');
-    } else {
-      res.redirect('login');
-    }
+    Auth.verifySession(req)
+      .then((validSession) => {
+        if (validSession) {
+          res.render('index');
+        } else {
+          res.redirect('login');
+        }
+      });
   });
 
 app.get('/links',
   (req, res, next) => {
-    if (Auth.verifySession(req)) {
-      models.Links.getAll()
-        .then(links => {
-          res.status(200).send(links);
-        })
-        .error(error => {
-          res.status(500).send(error);
-        });
-    } else {
-      res.redirect('login');
-    }
+    Auth.verifySession(req)
+      .then((validSession) => {
+        if (validSession) {
+          models.Links.getAll()
+            .then(links => {
+              res.status(200).send(links);
+            })
+            .error(error => {
+              res.status(500).send(error);
+            });
+        } else {
+          res.redirect('login');
+        }
+      });
   });
 
 app.post('/links',
@@ -95,12 +104,11 @@ app.get('/login',
     res.status(200);
     res.location('/login');
     res.render('login');
+    next();
   });
 
 app.post('/login',
   (req, res, next) => {
-    // Cook.parseCookies(req, res, next);
-    //compare attempted PW to actual PW
     models.Users.get({username: req.body.username})
       .then((results) => {
         if (results === undefined) {
@@ -110,21 +118,23 @@ app.post('/login',
         }
         let pwMatch = models.Users.compare(req.body.password, results.password, results.salt);
         if (pwMatch) {
-          res.location('/');
-          res.render('index');
+          Auth.createSession(req, res, next);
         } else {
           res.location('/login');
           res.render('login');
+          next();
         }
       })
       .catch(error => {
         res.status(404);
+        next();
       });
   });
 
 app.get('/signup',
   (req, res, next) => {
     res.render('signup');
+    next();
   });
 
 app.post('/signup',
@@ -134,14 +144,23 @@ app.post('/signup',
     userObj.password = req.body.password;
     models.Users.create(userObj)
       .then((result) => {
-        res.location('/');
-        res.render('index');
-        res.status(200);
+        Auth.createSession(req, res, next);
       })
       .catch((err) => {
         res.location('/signup');
         res.render('signup');
+        next();
       });
+  });
+
+//logout handler, can't figure out how to add to client since sprint said don't worry about client, its 6pm on Sat and I'm just going to write this as if I knew how to add the button on the client side
+app.delete('/',
+  (req, res, next) => {
+    Auth.parseCookies(req);
+    let cookie = req.cookies.shortlyid;
+    models.Sessions.delete({ hash: cookie});
+    res.render('login');
+    next();
   });
 
 

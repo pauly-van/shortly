@@ -1,40 +1,20 @@
 const models = require('../models');
 const Promise = require('bluebird');
 
-module.exports.createSession = (req, res, next) => {
-  if (req.cookies.shortlyid === undefined) {
-    models.Sessions.create()
-      .then((result) => {
-        return models.Sessions.get({id: result.insertId});
-      })
-      .then((result) => {
-        req.session = {};
-        req.session = result;
-        res.cookies.shortlyid = {value: result.hash};
-        next();
-      });
-  } else {
-    models.Sessions.get({hash: req.cookies.shortlyid})
-      .then((result) => {
-        if (result !== undefined) {
-          req.session = {};
-          req.session = result;
-          res.cookies.shortlyid = {value: result.hash};
-          next();
-        } else {
-          models.Sessions.create()
-            .then((result) => {
-              return models.Sessions.get({id: result.insertId});
-            })
-            .then((result) => {
-              req.session = {};
-              req.session = result;
-              res.cookies.shortlyid = {value: result.hash};
-              next();
-            });
-        }
-      });
-  }
+module.exports.createSession = (req, res, next, type) => {
+  models.Sessions.create()
+    .then((result) => {
+      return models.Sessions.get({id: result.insertId});
+    })
+    .then((result) => {
+      req.session = {};
+      req.session = result;
+      res.cookie('shortlyid', result.hash);
+      res.location('/');
+      res.render('index');
+      res.status(200);
+      next();
+    });
 };
 
 /************************************************************/
@@ -55,15 +35,18 @@ const parseCookies = (req) => {
 };
 
 module.exports.verifySession = function(req) {
-  parseCookies(req);
-  let cookies = req.cookies;
-  if (cookies.shortlyid) {
-    models.Sessions.get({hash: cookies.shortlyid})
-      .then((result) => {
-        if (result) {
-          return true;
-        }
-      });
-  }
-  return false;
+  return new Promise((resolve, reject) => {
+    parseCookies(req);
+    let cookies = req.cookies;
+    if (cookies.shortlyid) {
+      models.Sessions.get({hash: cookies.shortlyid})
+        .then((result) => {
+          if (result !== undefined) {
+            resolve(true);
+          } else {
+            resolve(false);
+          }
+        });
+    }
+  });
 };
